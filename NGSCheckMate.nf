@@ -135,10 +135,10 @@ process NCM_run {
 	"""
 	ls \$PWD/*.vcf > listVCF
 
-    mkdir NCM_output
+	mkdir NCM_output
 
-    python \$NCM_HOME/ncm.py -V -l listVCF -bed ${bed} -O ./NCM_output
-
+	python \$NCM_HOME/ncm.py -V -l listVCF -bed ${bed} -O ./NCM_output
+	Rscript NCM_output/r_script.r
 	"""
 }
 
