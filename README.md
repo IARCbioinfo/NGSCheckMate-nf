@@ -16,7 +16,7 @@ Implementation of NGSCheckMate and its underlying subset calling, distibuted per
 
 ## Input
 
-- `--input` : your input BAM file(s) (do not forget the quotes e.g. `--input "test_*.bam"`)
+- `--input` : your input BAM file(s) (do not forget the quotes e.g. `--input "test_*.bam"`). Warning : your BAM file(s) must be indexed, and the `test_*.bai` should be in the same folder.
 - `--output_dir` : the folder that will contain NGSCheckMate folder with all results in text files.
 - `--ref_fasta` : your reference in FASTA. 
 - `--bed` : Panel of SNP bed file from [NGSCheckMate](https://github.com/parklab/NGSCheckMate/tree/master/SNP). 
@@ -26,6 +26,6 @@ A nextflow.config is also included, please modify it for suitability outside our
 
 ## Usage for Cobalt cluster
 ```
-nextflow run iarcbioinfo/NGSCheckMate.nf -profile cobalt --input "/data/test_*.bam" --output_dir /data/cohort_output --ref_fasta /ref/Homo_sapiens_assembly38.fasta --bed /home/user/bin/NGSCheckMate/SNP/SNP_GRCh38.bed
+nextflow run iarcbioinfo/NGSCheckMate -profile cobalt --input "/data/test_*.bam" --output_dir /data/cohort_output --ref_fasta /ref/Homo_sapiens_assembly38.fasta --bed /home/user/bin/NGSCheckMate/SNP/SNP_GRCh38.bed
 ```
 
