@@ -17,6 +17,15 @@
 
 params.help = null
 
+// Parameters Init
+params.input_folder  = null
+params.input         = null
+params.output_folder = "."
+params.ref           = null
+params.bed           = null
+params.bai_ext       = ".bam.bai"
+
+
 log.info ""
 log.info "-------------------------------------------------------------------------"
 log.info "    NGSCheckMate-nf v1: Test cohort for duplicated samples       "
@@ -37,31 +46,41 @@ if (params.help)
     log.info "nextflow run iarcbioinfo/NGSCheckMate-nf [OPTIONS]"
     log.info ""
     log.info "Mandatory arguments:"
-    log.info "--input                  BAM FILES             BAM files (between quotes)"
-    log.info "--output_dir             OUTPUT FOLDER         Output for NCM results"
-    log.info "--ref_fasta              FASTA FILE            Reference FASTA file"
+    log.info "--input_folder           BAM FILES             BAM files (between quotes)"
+    log.info "--output_folder          OUTPUT FOLDER         Output for NCM results"
+    log.info "--ref                    FASTA FILE            Reference FASTA file"
     log.info "--bed                    BED FILE              Selected SNPs file"
-    exit 1
+    exit 0
+}else{
+  log.info "input_folder=${params.input_folder}"
+  log.info "input=${params.input}"
+  log.info "ref=${params.ref}"
+  log.info "output_folder=${params.output_folder}"
+  log.info "bed=${params.bed}"
+  log.info "help=${params.help}"
 }
-
-
-//
-// Parameters Init
-//
-params.input         = null
-params.output_dir    = "."
-params.ref_fasta     = null
-params.bed           = null
 
 
 //
 // Parse Input Parameters
 //
-bam_ch   = Channel
-			.fromPath(params.input)
+if(params.input_folder){
+	println "folder input"
+	bam_ch = Channel.fromFilePairs("${params.input_folder}/*{.bam,$params.bai_ext}")
+                         .map { row -> tuple(row[0],row[1][0], row[1][1]) }
+
+	bam_ch4print = Channel.fromFilePairs("${params.input_folder}/*{.bam,$params.bai_ext}")
+                          .map { row -> tuple(row[0],row[1][0], row[1][1]) }
+			  .subscribe { row -> println "${row}" }
+}else{
+	println "file input"
+	if(params.input){
+		bam_ch = Channel.fromPath(params.input)
 			.map { input -> tuple(input.baseName, input, input.parent / input.baseName + '.bai') }
-output    = file(params.output_dir)
-ref       = file(params.ref_fasta)
+	}
+}
+output    = file(params.output_folder)
+ref       = file(params.ref)
 bed       = file(params.bed)
 
 
@@ -89,7 +108,6 @@ process BCFTOOLS_calling{
     script:
     """
         samtools faidx ${genome}
-        
         bcftools mpileup -R ${bed} -f ${genome} ${bam} | bcftools call -mv -o ${sampleID}.vcf
     """
 
@@ -117,10 +135,10 @@ process NCM_run {
 	"""
 	ls \$PWD/*.vcf > listVCF
 
-    mkdir NCM_output
+	mkdir NCM_output
 
-    python \$NCM_HOME/ncm.py -V -l listVCF -bed ${bed} -O ./NCM_output
-
+	python \$NCM_HOME/ncm.py -V -l listVCF -bed ${bed} -O ./NCM_output
+	Rscript NCM_output/r_script.r
 	"""
 }
 

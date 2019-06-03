@@ -1,0 +1,12 @@
+name: ngscheckmate
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - fontconfig > 2 
+  - font-ttf-dejavu-sans-mono > 2
+  - python=2.7
+  - samtools=1.9
+  - bcftools=1.9
+  - r-base
