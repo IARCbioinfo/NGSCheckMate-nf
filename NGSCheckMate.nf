@@ -46,8 +46,9 @@ if (params.help)
     log.info "nextflow run iarcbioinfo/NGSCheckMate-nf [OPTIONS]"
     log.info ""
     log.info "Mandatory arguments:"
-    log.info "--input_folder           BAM FILES             BAM files (between quotes)"
-    log.info "--output_folder          OUTPUT FOLDER         Output for NCM results"
+    log.info "--input_folder           FOLDER             Folder with BAM files"
+    log.info "--input                  BAM FILES             List of BAM files (between quotes)"
+    log.info "--output_folder          FOLDER         Output for NCM results"
     log.info "--ref                    FASTA FILE            Reference FASTA file"
     log.info "--bed                    BED FILE              Selected SNPs file"
     exit 0
@@ -69,9 +70,9 @@ if(params.input_folder){
 	bam_ch = Channel.fromFilePairs("${params.input_folder}/*{.bam,$params.bai_ext}")
                          .map { row -> tuple(row[0],row[1][0], row[1][1]) }
 
-	bam_ch4print = Channel.fromFilePairs("${params.input_folder}/*{.bam,$params.bai_ext}")
-                          .map { row -> tuple(row[0],row[1][0], row[1][1]) }
-			  .subscribe { row -> println "${row}" }
+	//bam_ch4print = Channel.fromFilePairs("${params.input_folder}/*{.bam,$params.bai_ext}")
+    //                      .map { row -> tuple(row[0],row[1][0], row[1][1]) }
+	//		  .subscribe { row -> println "${row}" }
 }else{
 	println "file input"
 	if(params.input){
@@ -97,7 +98,6 @@ process BCFTOOLS_calling{
     errorStrategy 'retry'
     maxRetries 3
 
-  
     input:
         file genome from ref 
         set sampleID, file(bam), file(bai) from bam_ch
@@ -110,7 +110,6 @@ process BCFTOOLS_calling{
         samtools faidx ${genome}
         bcftools mpileup -R ${bed} -f ${genome} ${bam} | bcftools call -mv -o ${sampleID}.vcf
     """
-
 }
 
 
@@ -141,4 +140,3 @@ process NCM_run {
 	Rscript NCM_output/r_script.r
 	"""
 }
-
