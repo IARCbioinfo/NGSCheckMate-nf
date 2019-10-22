@@ -24,7 +24,7 @@ params.output_folder = "."
 params.ref           = null
 params.bed           = null
 params.bai_ext       = ".bam.bai"
-
+params.NCM_labelfile = 'NO_FILE'
 
 log.info ""
 log.info "-------------------------------------------------------------------------"
@@ -83,7 +83,7 @@ if(params.input_folder){
 output    = file(params.output_folder)
 ref       = file(params.ref)
 bed       = file(params.bed)
-
+labelfile = file(params.NCM_labelfile)
 
 //
 // Process Calling on SNP regions
@@ -99,17 +99,21 @@ process BCFTOOLS_calling{
     maxRetries 3
 
     input:
-        file genome from ref 
-        set sampleID, file(bam), file(bai) from bam_ch
+    file genome from ref 
+    set sampleID, file(bam), file(bai) from bam_ch
+    file bed
 
     output:
         set sampleID, file("${sampleID}.vcf") into vcf_ch
 
-    script:
-    """
-        samtools faidx ${genome}
-        bcftools mpileup -R ${bed} -f ${genome} ${bam} | bcftools call -mv -o ${sampleID}.vcf
-    """
+    shell:
+	'''
+    samtools faidx !{genome}
+    bcftools mpileup -R !{bed} -f !{genome} !{bam} | bcftools call -mv -o !{sampleID}.vcf
+    for sample in `bcftools query -l !{sampleID}.vcf`; do
+        bcftools view -c1 -Oz -s $sample -o $sample.vcf !{sampleID}.vcf
+    done
+    '''
 }
 
 
@@ -138,5 +142,31 @@ process NCM_run {
 
 	python \$NCM_HOME/ncm.py -V -l listVCF -bed ${bed} -O ./NCM_output
 	Rscript NCM_output/r_script.r
+    Rscript !{baseDir}/bin/plots.R $NCM_HOME 
 	"""
 }
+
+
+process NCM_graphs {
+    cpus 1
+    memory '2 GB'
+
+    publishDir "$output/NCM_output", mode: 'copy'
+    
+    
+    when:
+    params.NCM_labelfile!=null
+
+    input:
+    file ("NCM_output") from ncm_ch
+    file labs from labelfile
+
+	output:
+    file ("*.xgmml") into graphs
+	
+    script:
+	"""
+    Rscript !{baseDir}/bin/plots.R $NCM_HOME !{labs}
+	"""
+}
+
