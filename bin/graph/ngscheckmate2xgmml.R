@@ -127,6 +127,10 @@ create.xgmml.from.ngscheckmateout<-function(label.file, ngscheckmateoutput.file,
    
    # all files associated with these individuals
    labels.filtered=labels[labels$individual%in%individuals.containing.incorrect.matched,]
+   if(nrow(labels.filtered)==0 ){
+	print("No mismatching individuals")
+	return(NULL)
+   }
    nNodes=nrow(labels.filtered)
    # 45 files for luad usecase (all of them will be included as nodes)
    
