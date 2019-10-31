@@ -24,7 +24,8 @@ params.output_folder = "."
 params.ref           = null
 params.bed           = null
 params.bai_ext       = ".bam.bai"
-
+params.NCM_labelfile = 'NO_FILE'
+params.mem           = 16
 
 log.info ""
 log.info "-------------------------------------------------------------------------"
@@ -46,10 +47,13 @@ if (params.help)
     log.info "nextflow run iarcbioinfo/NGSCheckMate-nf [OPTIONS]"
     log.info ""
     log.info "Mandatory arguments:"
-    log.info "--input_folder           BAM FILES             BAM files (between quotes)"
-    log.info "--output_folder          OUTPUT FOLDER         Output for NCM results"
-    log.info "--ref                    FASTA FILE            Reference FASTA file"
-    log.info "--bed                    BED FILE              Selected SNPs file"
+    log.info "--input_folder           FOLDER             Folder with BAM files"
+    log.info "--input                  BAM FILES          List of BAM files (between quotes)"
+    log.info "--output_folder          FOLDER             Output for NCM results"
+    log.info "--ref                    FASTA FILE         Reference FASTA file"
+    log.info "--bed                    BED FILE           Selected SNPs file"
+    log.info "--NCM_labelfile          TSV FILE           tab-separated values file for generating xgmml graph file"
+    log.info "--mem                    INTEGER            Memory (in GB)"
     exit 0
 }else{
   log.info "input_folder=${params.input_folder}"
@@ -57,6 +61,8 @@ if (params.help)
   log.info "ref=${params.ref}"
   log.info "output_folder=${params.output_folder}"
   log.info "bed=${params.bed}"
+  log.info "NCM_labelfile=${params.NCM_labelfile}"
+  log.info "mem=${params.mem}"
   log.info "help=${params.help}"
 }
 
@@ -69,9 +75,9 @@ if(params.input_folder){
 	bam_ch = Channel.fromFilePairs("${params.input_folder}/*{.bam,$params.bai_ext}")
                          .map { row -> tuple(row[0],row[1][0], row[1][1]) }
 
-	bam_ch4print = Channel.fromFilePairs("${params.input_folder}/*{.bam,$params.bai_ext}")
-                          .map { row -> tuple(row[0],row[1][0], row[1][1]) }
-			  .subscribe { row -> println "${row}" }
+	//bam_ch4print = Channel.fromFilePairs("${params.input_folder}/*{.bam,$params.bai_ext}")
+    //                      .map { row -> tuple(row[0],row[1][0], row[1][1]) }
+	//		  .subscribe { row -> println "${row}" }
 }else{
 	println "file input"
 	if(params.input){
@@ -79,10 +85,10 @@ if(params.input_folder){
 			.map { input -> tuple(input.baseName, input, input.parent / input.baseName + '.bai') }
 	}
 }
-output    = file(params.output_folder)
 ref       = file(params.ref)
 bed       = file(params.bed)
-
+labelfile = file(params.NCM_labelfile)
+ncm_graphfiles = Channel.fromPath("$baseDir/bin/graph/*")
 
 //
 // Process Calling on SNP regions
@@ -91,42 +97,44 @@ process BCFTOOLS_calling{
     tag "$sampleID"
 
     cpus 1
-    memory '16 GB'
-    time { (2.hour + (2.hour * task.attempt)) }
+    memory params.mem+'G'
 
-    errorStrategy 'retry'
-    maxRetries 3
-
-  
     input:
-        file genome from ref 
-        set sampleID, file(bam), file(bai) from bam_ch
+    file genome from ref 
+    set sampleID, file(bam), file(bai) from bam_ch
+    file bed
 
     output:
-        set sampleID, file("${sampleID}.vcf") into vcf_ch
+    file("*.vcf") into vcf_ch
 
-    script:
-    """
-        samtools faidx ${genome}
-        bcftools mpileup -R ${bed} -f ${genome} ${bam} | bcftools call -mv -o ${sampleID}.vcf
-    """
-
+    shell:
+	'''
+    samtools faidx !{genome}
+    bcftools mpileup -R !{bed} -f !{genome} !{bam} | bcftools call -mv -o !{sampleID}.vcf
+    for sample in `bcftools query -l !{sampleID}.vcf`; do
+        bcftools view -c1 -Ov -s $sample -o $sample.vcf !{sampleID}.vcf
+    done
+    rm !{sampleID}.vcf
+    '''
 }
+
+vcf_ch4print = Channel.empty()
+vcf_ch2 = Channel.empty()
+
+vcf_ch.into{ vcf_ch2; vcf_ch4print}
+
+vcf_ch4print.collect()
+            .subscribe{ row -> println "${row}" }
 
 
 process NCM_run {
-
     cpus 1
-    memory '16 GB'
-    time { (2.hour + (2.hour * task.attempt)) }
+    memory params.mem+'G'
 
-    errorStrategy 'retry'
-    maxRetries 3
-
-    publishDir "$output", mode: 'copy'
+    publishDir params.output_folder, mode: 'copy'
     
     input:
-    file (vcf) from vcf_ch.collect()
+    file (vcf) from vcf_ch2.collect()
 
 	output:
     file ("NCM_output") into ncm_ch
@@ -142,3 +150,27 @@ process NCM_run {
 	"""
 }
 
+//ncm_graphfiles.subscribe{ row -> println "$row"}
+
+process NCM_graphs {
+    cpus 1
+    memory '2 GB'
+
+    publishDir "${params.output_folder}/NCM_output", mode: 'copy'
+    
+    when:
+    params.NCM_labelfile!=null
+
+    input:
+    file ("NCM_output") from ncm_ch
+    file labs from labelfile
+    file graphfiles from ncm_graphfiles.collect()
+
+	output:
+    file ("*.xgmml") into graphs
+	
+    shell:
+	'''
+    Rscript !{baseDir}/bin/plots.R !{labs}
+	'''
+}
