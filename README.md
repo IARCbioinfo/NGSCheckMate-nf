@@ -29,3 +29,7 @@ A nextflow.config is also included, please modify it for suitability outside our
 nextflow run iarcbioinfo/NGSCheckMate -profile cobalt --input "/data/test_*.bam" --output_dir /data/cohort_output --ref_fasta /ref/Homo_sapiens_assembly38.fasta --bed /home/user/bin/NGSCheckMate/SNP/SNP_GRCh38.bed
 ```
 
+## FAQ
+
+### Why are some files not included although the are in the intput_folder?
+be careful that if bai files are missing for some bam files, the bam files will be ignored without the workflow returning an error
