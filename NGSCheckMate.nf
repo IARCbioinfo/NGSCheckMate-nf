@@ -110,11 +110,11 @@ process BCFTOOLS_calling{
     shell:
 	'''
     samtools faidx !{genome}
-    bcftools mpileup -R !{bed} -f !{genome} !{bam} | bcftools call -mv -o !{sampleID}.vcf
-    for sample in `bcftools query -l !{sampleID}.vcf`; do
-        bcftools view -c1 -Ov -s $sample -o $sample.vcf !{sampleID}.vcf
+    bcftools mpileup -I -R !{bed} -f !{genome} !{bam} | bcftools call -c -o !{sampleID}_all.vcf
+    for sample in `bcftools query -l !{sampleID}_all.vcf`; do
+        bcftools view -c1 -Ov -s $sample -o $sample.vcf !{sampleID}_all.vcf
     done
-    rm !{sampleID}.vcf
+    rm !{sampleID}_all.vcf
     '''
 }
 
