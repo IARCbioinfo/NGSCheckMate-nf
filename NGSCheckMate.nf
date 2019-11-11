@@ -26,6 +26,7 @@ params.bed           = null
 params.bai_ext       = ".bam.bai"
 params.NCM_labelfile = 'NO_FILE'
 params.mem           = 16
+params.cpu           = 4
 
 log.info ""
 log.info "-------------------------------------------------------------------------"
@@ -54,6 +55,7 @@ if (params.help)
     log.info "--bed                    BED FILE           Selected SNPs file"
     log.info "--NCM_labelfile          TSV FILE           tab-separated values file for generating xgmml graph file"
     log.info "--mem                    INTEGER            Memory (in GB)"
+    log.info "--cpu                    INTEGER            Number of threads for germline calling"
     exit 0
 }else{
   log.info "input_folder=${params.input_folder}"
@@ -63,6 +65,7 @@ if (params.help)
   log.info "bed=${params.bed}"
   log.info "NCM_labelfile=${params.NCM_labelfile}"
   log.info "mem=${params.mem}"
+  log.info "cpu=${params.cpu}"
   log.info "help=${params.help}"
 }
 
@@ -96,7 +99,7 @@ ncm_graphfiles = Channel.fromPath("$baseDir/bin/graph/*")
 process BCFTOOLS_calling{
     tag "$sampleID"
 
-    cpus 1
+    cpus params.cpu
     memory params.mem+'G'
 
     input:
@@ -107,10 +110,14 @@ process BCFTOOLS_calling{
     output:
     file("*.vcf") into vcf_ch
 
+    publishDir params.output_folder+"/vcfs/", mode: 'copy'
+
     shell:
+    cpus_mpileup = params.cpu.intdiv(2)
+    cpus_call = params.cpu.intdiv(2)
 	'''
     samtools faidx !{genome}
-    bcftools mpileup -I -R !{bed} -f !{genome} !{bam} | bcftools call -c -o !{sampleID}_all.vcf
+    bcftools mpileup --threads !{cpus_mpileup} --max-depth 5000 -Ou -I -R !{bed} -f !{genome} !{bam} | bcftools call --threads !{cpus_call} -i -m -o !{sampleID}_all.vcf
     for sample in `bcftools query -l !{sampleID}_all.vcf`; do
         bcftools view -c1 -Ov -s $sample -o $sample.vcf !{sampleID}_all.vcf
     done
