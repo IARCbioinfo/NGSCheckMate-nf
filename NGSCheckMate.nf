@@ -119,7 +119,7 @@ process BCFTOOLS_calling{
     samtools faidx !{genome}
     bcftools mpileup --threads !{cpus_mpileup} --max-depth 5000 -Ou -I -R !{bed} -f !{genome} !{bam} | bcftools call --threads !{cpus_call} -m -o !{sampleID}_all.vcf
     for sample in `bcftools query -l !{sampleID}_all.vcf`; do
-        bcftools view -c1 -Ov -s $sample -o $sample.vcf !{sampleID}_all.vcf
+        bcftools view -Ov -s $sample -o $sample.vcf !{sampleID}_all.vcf
     done
     rm !{sampleID}_all.vcf
     '''
