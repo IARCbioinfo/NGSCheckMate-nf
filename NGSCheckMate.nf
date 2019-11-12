@@ -109,6 +109,7 @@ process BCFTOOLS_calling{
 
     output:
     file("*.vcf") into vcf_ch
+    file("*.vcf.gz*") into vcfgz_ch
 
     publishDir params.output_folder+"/vcfs/", mode: 'copy'
 
@@ -119,7 +120,9 @@ process BCFTOOLS_calling{
     samtools faidx !{genome}
     bcftools mpileup --threads !{cpus_mpileup} --max-depth 5000 -Ou -I -R !{bed} -f !{genome} !{bam} | bcftools call --threads !{cpus_call} -m -o !{sampleID}_all.vcf
     for sample in `bcftools query -l !{sampleID}_all.vcf`; do
-        bcftools view -Ov -s $sample -o $sample.vcf !{sampleID}_all.vcf
+        bcftools view -Ou -s $sample !{sampleID}_all.vcf | bcftools sort -Ou | bcftools norm -d none -O v -o $sample.vcf
+        bcftools view -Oz -o $sample.vcf.gz $sample.vcf
+        tabix -p vcf $sample.vcf.gz
     done
     rm !{sampleID}_all.vcf
     '''
