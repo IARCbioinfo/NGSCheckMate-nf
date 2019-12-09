@@ -53,7 +53,7 @@ if (params.help)
     log.info "--output_folder          FOLDER             Output for NCM results"
     log.info "--ref                    FASTA FILE         Reference FASTA file"
     log.info "--bed                    BED FILE           Selected SNPs file"
-    log.info "--NCM_labelfile          TSV FILE           tab-separated values file for generating xgmml graph file"
+    log.info "--NCM_labelfile          TSV FILE           tab-separated values file with 3 columns (vcf name, individual ID, sample ID) for generating xgmml graph file"
     log.info "--mem                    INTEGER            Memory (in GB)"
     log.info "--cpu                    INTEGER            Number of threads for germline calling"
     exit 0
@@ -118,7 +118,7 @@ process BCFTOOLS_calling{
     cpus_call = params.cpu.intdiv(2)
 	'''
     samtools faidx !{genome}
-    bcftools mpileup --threads !{cpus_mpileup} --max-depth 5000 -Ou -I -R !{bed} -f !{genome} !{bam} | bcftools call --threads !{cpus_call} -m -o !{sampleID}_all.vcf
+    bcftools mpileup --threads !{cpus_mpileup} --max-depth 5000 -Ou -I -R !{bed} -f !{genome} !{bam} | bcftools call --threads !{cpus_call} -c -o !{sampleID}_all.vcf
     for sample in `bcftools query -l !{sampleID}_all.vcf`; do
         bcftools view -Ou -s $sample !{sampleID}_all.vcf | bcftools sort -Ou | bcftools norm -d none -O v -o $sample.vcf
         bcftools view -Oz -o $sample.vcf.gz $sample.vcf
@@ -156,11 +156,8 @@ process NCM_run {
 	mkdir NCM_output
 
 	python \$NCM_HOME/ncm.py -V -l listVCF -bed ${bed} -O ./NCM_output
-	Rscript NCM_output/r_script.r
 	"""
 }
-
-//ncm_graphfiles.subscribe{ row -> println "$row"}
 
 process NCM_graphs {
     cpus 1
@@ -179,8 +176,12 @@ process NCM_graphs {
 	output:
     file ("*.xgmml") into graphs
 	
+    when:
+    labelfile.name != 'NO_FILE'
+
     shell:
 	'''
-    Rscript !{baseDir}/bin/plots.R !{labs}
+    cat !{labs} | awk '{print $1".vcf\t"$2"\t"$3}' > input_plots.tsv
+    Rscript !{baseDir}/bin/plots.R input_plots.tsv
 	'''
 }
