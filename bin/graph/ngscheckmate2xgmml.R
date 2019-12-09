@@ -18,7 +18,8 @@ distinct.colors<-function(n=40){
  }
 
  # 3. convert to rgb.
- rgb=apply(color,1,function(xx)rgb(xx[1],xx[2],xx[3]))
+ if(length(rgb)>3 ) rgb=apply(color,1,function(xx)rgb(xx[1],xx[2],xx[3]))
+ else rgb = rgb(color[1],color[2],color[3])
  return(rgb)
 }
 
