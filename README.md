@@ -14,6 +14,8 @@ Implementation of NGSCheckMate and its underlying subset calling, distibuted per
 3. [samtools](http://www.htslib.org/download/)
 4. [bcftools](http://www.htslib.org/download/)
 
+Additionally, the graph output option requires [R](https://cran.r-project.org/); see details below about this option.
+
 ## Input
   | Type      | Description     |
   |-----------|---------------|
