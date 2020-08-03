@@ -4,9 +4,9 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - fontconfig > 2 
-  - font-ttf-dejavu-sans-mono > 2
+  - fontconfig=2.13.1 
+  - font-ttf-dejavu-sans-mono=2.37
   - python=2.7
   - samtools=1.9
   - bcftools=1.9
-  - r-base
+  - r-base=4.0.2

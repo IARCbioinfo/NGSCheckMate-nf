@@ -30,7 +30,7 @@ params.cpu           = 4
 
 log.info ""
 log.info "-------------------------------------------------------------------------"
-log.info "    NGSCheckMate-nf v1: Test cohort for duplicated samples       "
+log.info "    NGSCheckMate-nf v1.1: Check matching of samples         "
 log.info "-------------------------------------------------------------------------"
 log.info "Copyright (C) IARC/WHO"
 log.info "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE"
@@ -49,24 +49,28 @@ if (params.help)
     log.info ""
     log.info "Mandatory arguments:"
     log.info "--input_folder           FOLDER             Folder with BAM files"
-    log.info "--input                  BAM FILES          List of BAM files (between quotes)"
-    log.info "--output_folder          FOLDER             Output for NCM results"
     log.info "--ref                    FASTA FILE         Reference FASTA file"
+    log.info ""
+    log.info "Optional arguments:"
+    log.info "--input                  BAM FILES          List of BAM files (between quotes)"
     log.info "--bed                    BED FILE           Selected SNPs file"
+    log.info "--output_folder          FOLDER             Output for NCM results"
+    log.info "--bai_ext                STRING             Extenstion of bai files (default: .bam.bai)"
     log.info "--NCM_labelfile          TSV FILE           tab-separated values file with 3 columns (vcf name, individual ID, sample ID) for generating xgmml graph file"
     log.info "--mem                    INTEGER            Memory (in GB)"
     log.info "--cpu                    INTEGER            Number of threads for germline calling"
     exit 0
 }else{
-  log.info "input_folder=${params.input_folder}"
-  log.info "input=${params.input}"
-  log.info "ref=${params.ref}"
-  log.info "output_folder=${params.output_folder}"
-  log.info "bed=${params.bed}"
-  log.info "NCM_labelfile=${params.NCM_labelfile}"
-  log.info "mem=${params.mem}"
-  log.info "cpu=${params.cpu}"
-  log.info "help=${params.help}"
+  log.info "input_folder  = ${params.input_folder}"
+  log.info "input         = ${params.input}"
+  log.info "ref           = ${params.ref}"
+  log.info "output_folder = ${params.output_folder}"
+  log.info "bed           = ${params.bed}"
+  log.info "bai_ext       = ${params.bai_ext}"
+  log.info "NCM_labelfile = ${params.NCM_labelfile}"
+  log.info "mem           = ${params.mem}"
+  log.info "cpu           = ${params.cpu}"
+  log.info "help          = ${params.help}"
 }
 
 
@@ -77,10 +81,6 @@ if(params.input_folder){
 	println "folder input"
 	bam_ch = Channel.fromFilePairs("${params.input_folder}/*{.bam,$params.bai_ext}")
                          .map { row -> tuple(row[0],row[1][0], row[1][1]) }
-
-	//bam_ch4print = Channel.fromFilePairs("${params.input_folder}/*{.bam,$params.bai_ext}")
-    //                      .map { row -> tuple(row[0],row[1][0], row[1][1]) }
-	//		  .subscribe { row -> println "${row}" }
 }else{
 	println "file input"
 	if(params.input){
@@ -145,12 +145,16 @@ process NCM_run {
     
     input:
     file (vcf) from vcf_ch2.collect()
+    file genome from ref 
 
 	output:
     file ("NCM_output") into ncm_ch
 	
     script:
 	"""
+    echo "REF=${params.ref}" > \$NCM_HOME/ncm.conf
+    echo "SAMTOOLS=samtools" >> \$NCM_HOME/ncm.conf
+    echo "BCFTOOLS=bcftools" >> \$NCM_HOME/ncm.conf
 	ls \$PWD/*.vcf > listVCF
 
 	mkdir NCM_output
