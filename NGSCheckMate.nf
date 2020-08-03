@@ -53,7 +53,7 @@ if (params.help)
     log.info ""
     log.info "Optional arguments:"
     log.info "--input                  BAM FILES          List of BAM files (between quotes)"
-    log.info "--bed                    BED FILE           Selected SNPs file"
+    log.info "--bed                    BED FILE           Selected SNPs file (default: SNP_GRCh38.bed from the workflow's directory)"
     log.info "--output_folder          FOLDER             Output for NCM results"
     log.info "--bai_ext                STRING             Extenstion of bai files (default: .bam.bai)"
     log.info "--NCM_labelfile          TSV FILE           tab-separated values file with 3 columns (vcf name, individual ID, sample ID) for generating xgmml graph file"
@@ -89,7 +89,11 @@ if(params.input_folder){
 	}
 }
 ref       = file(params.ref)
-bed       = file(params.bed)
+if(params.bed){
+    bed   = file(params.bed)
+}else{
+    bed   = file("${baseDir}/SNP_GRCh38.bed")
+}
 labelfile = file(params.NCM_labelfile)
 ncm_graphfiles = Channel.fromPath("$baseDir/bin/graph/*")
 
