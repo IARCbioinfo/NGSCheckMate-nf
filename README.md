@@ -1,5 +1,8 @@
 # NGSCheckMate
-Nextflow pipeline to detect matched BAMs with [NGSCheckMate](https://github.com/parklab/NGSCheckMate).
+## Nextflow pipeline to detect matched BAMs with [NGSCheckMate](https://github.com/parklab/NGSCheckMate).
+[![CircleCI](https://circleci.com/gh/IARCbioinfo/NGSCheckMate-nf/tree/master.svg?style=svg)](https://circleci.com/gh/IARCbioinfo/NGSCheckMate-nf/tree/master)
+[![Docker Hub](https://img.shields.io/badge/docker-ready-blue.svg)](https://hub.docker.com/repository/docker/iarcbioinfo/ngscheckmate-nf)
+[![https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg](https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg)](https://singularity-hub.org/collections/4613)
 
 <div style="text-align:center"><img src="https://camo.githubusercontent.com/371f23d984f8679c6562758f1e5b5e12397f1bef/68747470733a2f2f7061726b6c61622e6769746875622e696f2f4e4753436865636b4d6174652f6c6f676f2e737667" width="200" /></div>
 
@@ -41,6 +44,7 @@ Note that a bed file SNP_GRCh38.bed is provided, which is a liftOver of the file
 |-----------|---------------|-----------------|
 | --mem   |   16 | Memory requested (in GB) for calling and NGSCheckmate run |
 | --cpu    | 4 | Number of threads for germline calling |
+|--bai_ext  | .bam.bai| Extenstion of bai files |
 | --NCM_labelfile | labels.tsv | tab-separated values file with 3 columns (vcf name, individual ID, sample ID) for generating xgmml graph file |
 
 Note that the NCM_labelfile is optional; when provided, an extra step is computed using a modified version of the graph/ngscheckmate2xgmml.R R script from https://github.com/parklab/NGSCheckMate to output graphs in .xgmml format, which can be read by software [Cytoscape](https://cytoscape.org/). The format of file NCM_labelfile is similar to that of the original script from https://github.com/parklab/NGSCheckMate: a tab-delimited text file with 3 columns without header--a sample name (1st column) that must match the name in the SM field of the BAM header, an individual identifier (2nd column), and optionally, a file identifier (3rd column) for each line. The individual identifier must be unique to a subject (e.g. both tumor and normal samples from the same individual must have the same individual identifier). A file identifier must be unique to a file name. For example, the following is a valid file:
@@ -55,7 +59,7 @@ where the bam files NA06984_T.bam and NA06984_N.bam respectively contain the fol
 
 ## Usage
   ```
-  nextflow run NGSCheckMate-nf/ --ref ref.fasta --bed NGSCheckMate-nf/SNP_GRCh38.bed --input_folder BAM/ --NCM_labelfile NCM_labelfile.txt
+  nextflow run NGSCheckMate-nf/ -r v1.0 --ref ref.fasta --bed NGSCheckMate-nf/SNP_GRCh38.bed --input_folder BAM/ --NCM_labelfile NCM_labelfile.txt
   ```
 
 ## Output
@@ -79,3 +83,10 @@ nextflow run iarcbioinfo/NGSCheckMate -profile cobalt --input "/data/test_*.bam"
 
 ### Why are some files not included although the are in the intput_folder?
 be careful that if bai files are missing for some bam files, the bam files will be ignored without the workflow returning an error
+
+## Contributions
+
+  | Name      | Email | Description     |
+  |-----------|---------------|-----------------| 
+  | Nicolas Alcala*    | AlcalaN@iarc.fr    | Developer to contact for support |
+  | Maxime Vallée |  | Developer |
