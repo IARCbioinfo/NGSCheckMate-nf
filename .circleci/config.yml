@@ -10,6 +10,7 @@ jobs:
                 - run: sudo apt-get install graphviz
                 - run: cd ~ ; wget -qO- get.nextflow.io | bash ; chmod 755 nextflow ; sudo ln -s ~/nextflow /usr/local/bin/ 
                 - run: echo " docker.runOptions = '-u $(id -u):$(id -g)' " > ~/.nextflow/config
+                - run: cd ~/project/ ; docker build -t iarcbioinfo/ngscheckmate-nf .
                 #; sudo apt-get install libarchive-dev
 #                - run: sudo rm -rf /usr/local/go
 #                - run: cd ~ ; export VERSION=1.13 OS=linux ARCH=amd64; wget https://dl.google.com/go/go$VERSION.$OS-$ARCH.tar.gz; sudo tar -C /usr/local -xzvf go$VERSION.$OS-$ARCH.tar.gz ; rm go$VERSION.$OS-$ARCH.tar.gz; sudo ln -s /usr/local/go/bin/go /usr/local/bin/
@@ -17,12 +18,9 @@ jobs:
 #                - run: cd ~ ; VERSION=3.6.0; wget https://github.com/sylabs/singularity/releases/download/v${VERSION}/singularity-${VERSION}.tar.gz; tar -xzf singularity-${VERSION}.tar.gz; cd singularity; ./mconfig; make -C builddir; sudo make -C builddir install                         
 #                - run: cd ~ ; singularity pull ...
                 - run: cd ~ && git clone https://github.com/iarcbioinfo/data_test.git
-                - run: cd ~ && git clone -b v2.3 https://github.com/iarcbioinfo/RNAseq-nf.git
-                - run: cd ; nextflow run RNAseq-nf/ -profile docker --input_folder ~/data_test/FASTQ/ --output_folder BAM_realigned --ref_folder  ~/data_test/REF --gtf ~/data_test/REF/TP53_small.gtf --bed ~/data_test/BED/TP53_small.bed --cpu 2 --mem 4
+                - run: cd ; mkdir BAM; ln -s ~/data_test/BAM/NA06984_N.bam* BAM/.
                 - run: cd ; nextflow run ~/project/ --help
-                - run: cd ; docker pull trinityctat/starfusion:1.8.1
-                - run: cd ; nextflow run ~/project/ -with-docker trinityctat/starfusion:1.8.1 --input_folder ~/data_test/FASTQ/ --output_folder RNAseq-fusion-out --CTAT_folder ~/data_test/REF/ctat_genome_lib_build_dir_TP53/ --fastq_ext fastq.gz --cpu 2 --mem 4 -with-dag dag.html
-                - run: cd ; nextflow run ~/project/ -with-docker trinityctat/starfusion:1.8.1 --input_folder ~/data_test/FASTQ/ --output_folder RNAseq-fusion-out --CTAT_folder ~/data_test/REF/ctat_genome_lib_build_dir_TP53/ --fastq_ext fastq.gz --cpu 2 --mem 4 -resume -with-dag dag.png
+                - run: cd ; nextflow run ~/project/ -with-docker iarcbioinfo/ngscheckmate-nf --input_folder BAM/ --output_folder NCM-out --ref ~/data_test/REF/17_7572000-7591000.fasta --bed ~/data_test/BED/SNP_GRCh38_4NCM.bed --cpu 2 --mem 4 -with-dag dag.html
                 - run: cd ; cp ~/dag.* ~/project/.
                 - add_ssh_keys:
                                 fingerprints:

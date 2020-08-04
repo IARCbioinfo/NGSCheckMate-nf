@@ -22,6 +22,6 @@ MAINTAINER **nalcala** <**alcalan@iarc.fr**>
 COPY environment.yml /
 RUN apt-get update && apt-get install -y procps && apt-get clean -y
 RUN conda env create -n ngscheckmate-nf -f /environment.yml && conda clean -a
-RUN cd; git clone https://github.com/parklab/NGSCheckMate.git; echo "SAMTOOLS=samtools" >> NGSCheckMate/ncm.conf; echo "BCFTOOLS=bcftools" >> NGSCheckMate/ncm.conf
-ENV NCM_HOME ~/NGSCheckMate
+RUN cd /opt/conda/envs/ngscheckmate-nf/; git clone https://github.com/parklab/NGSCheckMate.git; echo "SAMTOOLS=samtools" >> NGSCheckMate/ncm.conf; echo "BCFTOOLS=bcftools" >> NGSCheckMate/ncm.conf
+ENV NCM_HOME /opt/conda/envs/ngscheckmate-nf/NGSCheckMate
 ENV PATH /opt/conda/envs/ngscheckmate-nf/bin:$PATH

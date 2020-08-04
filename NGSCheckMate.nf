@@ -156,6 +156,8 @@ process NCM_run {
 	
     script:
 	"""
+    cp -r \$NCM_HOME .
+    export NCM_HOME="\$PWD/NGSCheckMate"
     echo "REF=${params.ref}" > \$NCM_HOME/ncm.conf
     echo "SAMTOOLS=samtools" >> \$NCM_HOME/ncm.conf
     echo "BCFTOOLS=bcftools" >> \$NCM_HOME/ncm.conf
