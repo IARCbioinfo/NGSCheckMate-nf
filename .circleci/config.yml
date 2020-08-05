@@ -20,7 +20,7 @@ jobs:
                 - run: cd ~ && git clone https://github.com/iarcbioinfo/data_test.git
                 - run: cd ; mkdir BAM; ln -s ~/data_test/BAM/NA06984_N.bam* BAM/.
                 - run: cd ; nextflow run ~/project/ --help
-                - run: cd ; nextflow run ~/project/ -with-docker iarcbioinfo/ngscheckmate-nf --input_folder BAM/ --output_folder NCM-out --ref ~/data_test/REF/17_7572000-7591000.fasta --bed ~/data_test/BED/SNP_GRCh38_4NCM.bed --cpu 2 --mem 4 -with-dag dag.html
+                - run: cd ; nextflow run ~/project/ -with-docker iarcbioinfo/ngscheckmate-nf --input_folder BAM/ --output_folder NCM-out --ref ~/data_test/REF/17.fasta --bed ~/data_test/BED/SNP_hg19_4NCM.bed --cpu 2 --mem 4 -with-dag dag.html
                 - run: cd ; cp ~/dag.* ~/project/.
                 - add_ssh_keys:
                                 fingerprints:
