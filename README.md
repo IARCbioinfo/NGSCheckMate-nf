@@ -4,7 +4,8 @@
 [![Docker Hub](https://img.shields.io/badge/docker-ready-blue.svg)](https://hub.docker.com/repository/docker/iarcbioinfo/ngscheckmate-nf)
 [![https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg](https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg)](https://singularity-hub.org/collections/4613)
 
-<div style="text-align:center"><img src="https://camo.githubusercontent.com/371f23d984f8679c6562758f1e5b5e12397f1bef/68747470733a2f2f7061726b6c61622e6769746875622e696f2f4e4753436865636b4d6174652f6c6f676f2e737667" width="200" /></div>
+![Workflow representation](NGSCheckMate-nf.png?raw=true "Scheme of NGSCheckMate Workflow")
+
 
 ## Description
 
