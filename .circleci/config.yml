@@ -18,7 +18,7 @@ jobs:
 #                - run: cd ~ ; VERSION=3.6.0; wget https://github.com/sylabs/singularity/releases/download/v${VERSION}/singularity-${VERSION}.tar.gz; tar -xzf singularity-${VERSION}.tar.gz; cd singularity; ./mconfig; make -C builddir; sudo make -C builddir install                         
 #                - run: cd ~ ; singularity pull ...
                 - run: cd ~ && git clone https://github.com/iarcbioinfo/data_test.git
-                - run: cd ; mkdir BAM; ln -s ~/data_test/BAM/NA06984_N.bam* BAM/.
+                - run: cd ; mkdir BAM; ln -s ~/data_test/BAM/BAM_multiple/NA06984.bam* BAM/.; ln -s ~/data_test/BAM/BAM_multiple/NA12890.bam* BAM/.
                 - run: cd ; nextflow run ~/project/ --help
                 - run: cd ; nextflow run ~/project/ -with-docker iarcbioinfo/ngscheckmate-nf --input_folder BAM/ --output_folder NCM-out --ref ~/data_test/REF/17.fasta --bed ~/data_test/BED/SNP_hg19_4NCM.bed --cpu 2 --mem 4 -with-dag dag.html
                 - run: cd ; cp ~/dag.* ~/project/.

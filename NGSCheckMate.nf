@@ -20,11 +20,11 @@ params.help = null
 // Parameters Init
 params.input_folder  = null
 params.input         = null
+params.input_file    = null
 params.output_folder = "."
 params.ref           = null
 params.bed           = null
 params.bai_ext       = ".bam.bai"
-params.NCM_labelfile = 'NO_FILE'
 params.mem           = 16
 params.cpu           = 4
 
@@ -53,21 +53,23 @@ if (params.help)
     log.info ""
     log.info "Optional arguments:"
     log.info "--input                  BAM FILES          List of BAM files (between quotes)"
+    log.info '--input_file             STRING             Input file (comma-separated) with 3 columns:'
+    log.info '                                            ID (individual ID), suffix (suffix for sample names; e.g. RNA),'
+    log.info '                                            and bam (path to bam file).'
     log.info "--bed                    BED FILE           Selected SNPs file (default: SNP_GRCh38.bed from the workflow's directory)"
     log.info "--output_folder          FOLDER             Output for NCM results"
     log.info "--bai_ext                STRING             Extenstion of bai files (default: .bam.bai)"
-    log.info "--NCM_labelfile          TSV FILE           tab-separated values file with 3 columns (vcf name, individual ID, sample ID) for generating xgmml graph file"
     log.info "--mem                    INTEGER            Memory (in GB)"
     log.info "--cpu                    INTEGER            Number of threads for germline calling"
     exit 0
 }else{
   log.info "input_folder  = ${params.input_folder}"
+  log.info "input_file    = ${params.input_file}"
   log.info "input         = ${params.input}"
   log.info "ref           = ${params.ref}"
   log.info "output_folder = ${params.output_folder}"
   log.info "bed           = ${params.bed}"
   log.info "bai_ext       = ${params.bai_ext}"
-  log.info "NCM_labelfile = ${params.NCM_labelfile}"
   log.info "mem           = ${params.mem}"
   log.info "cpu           = ${params.cpu}"
   log.info "help          = ${params.help}"
@@ -80,13 +82,20 @@ if (params.help)
 if(params.input_folder){
 	println "folder input"
 	bam_ch = Channel.fromFilePairs("${params.input_folder}/*{.bam,$params.bai_ext}")
-                         .map { row -> tuple(row[0],row[1][0], row[1][1]) }
+                         .map { row -> tuple(row[0],"",row[1][0], row[1][1]) }
 }else{
-	println "file input"
-	if(params.input){
-		bam_ch = Channel.fromPath(params.input)
-			.map { input -> tuple(input.baseName, input, input.parent / input.baseName + '.bai') }
-	}
+    if(params.input_file){
+        println "TSV file list input"
+        bam_ch = Channel.fromPath("${params.input_file}")
+			            .splitCsv(header: true, sep: '\t', strip: true)
+			            .map { row -> [row.ID , row.suffix , file(row.bam), file(row.bam+'.bai') ] }
+    }else{
+	    println "file input"
+	    if(params.input){
+		    bam_ch = Channel.fromPath(params.input)
+			                .map { input -> tuple(input.baseName, "", input, input.parent / input.baseName + '.bai') }
+	    }
+    }
 }
 ref       = file(params.ref)
 if(params.bed){
@@ -94,41 +103,43 @@ if(params.bed){
 }else{
     bed   = file("${baseDir}/SNP_GRCh38.bed")
 }
-labelfile = file(params.NCM_labelfile)
 ncm_graphfiles = Channel.fromPath("$baseDir/bin/graph/*")
 
 //
 // Process Calling on SNP regions
 //
 process BCFTOOLS_calling{
-    tag "$sampleID"
+    tag "$file_tag"
 
     cpus params.cpu
     memory params.mem+'G'
 
     input:
     file genome from ref 
-    set sampleID, file(bam), file(bai) from bam_ch
+    set ID, suffix, file(bam), file(bai) from bam_ch
     file bed
 
     output:
     file("*.vcf") into vcf_ch
     file("*.vcf.gz*") into vcfgz_ch
+    file("input_plots*.tsv") into plot_inputs
 
     publishDir params.output_folder+"/vcfs/", mode: 'copy'
 
     shell:
     cpus_mpileup = params.cpu.intdiv(2)
     cpus_call = params.cpu.intdiv(2)
+    file_tag = bam.name.replace(".bam","")
 	'''
     samtools faidx !{genome}
-    bcftools mpileup --threads !{cpus_mpileup} --max-depth 5000 -Ou -I -R !{bed} -f !{genome} !{bam} | bcftools call --threads !{cpus_call} -c -o !{sampleID}_all.vcf
-    for sample in `bcftools query -l !{sampleID}_all.vcf`; do
-        bcftools view -Ou -s $sample !{sampleID}_all.vcf | bcftools sort -Ou | bcftools norm -d none -O v -o $sample.vcf
-        bcftools view -Oz -o $sample.vcf.gz $sample.vcf
-        tabix -p vcf $sample.vcf.gz
+    bcftools mpileup --threads !{cpus_mpileup} --max-depth 5000 -Ou -I -R !{bed} -f !{genome} !{bam} | bcftools call --threads !{cpus_call} -c -o !{file_tag}_allSM.vcf
+    for sample in `bcftools query -l !{file_tag}_allSM.vcf`; do
+        bcftools view -Ou -s $sample !{file_tag}_allSM.vcf | bcftools sort -Ou | bcftools norm -d none -O v -o $sample!{suffix}.vcf
+        bcftools view -Oz -o $sample!{suffix}.vcf.gz $sample!{suffix}.vcf
+        tabix -p vcf $sample!{suffix}.vcf.gz
+        echo "$sample!{suffix}.vcf\t!{ID}\t$sample!{suffix}" >> input_plots_$sample!{suffix}.tsv
     done
-    rm !{sampleID}_all.vcf
+    rm !{file_tag}_allSM.vcf
     '''
 }
 
@@ -153,6 +164,7 @@ process NCM_run {
 
 	output:
     file ("NCM_output") into ncm_ch
+    file ("listVCF") into vcflist
 	
     script:
 	"""
@@ -175,23 +187,17 @@ process NCM_graphs {
 
     publishDir "${params.output_folder}/NCM_output", mode: 'copy'
     
-    when:
-    params.NCM_labelfile!=null
-
     input:
     file ("NCM_output") from ncm_ch
-    file labs from labelfile
+    file infile from plot_inputs.collect()
     file graphfiles from ncm_graphfiles.collect()
 
 	output:
     file ("*.xgmml") into graphs
-	
-    when:
-    labelfile.name != 'NO_FILE'
 
     shell:
 	'''
-    cat !{labs} | awk '{print $1".vcf\t"$2"\t"$3}' > input_plots.tsv
+    cat !{infile} > input_plots.tsv
     Rscript !{baseDir}/bin/plots.R input_plots.tsv
 	'''
 }
