@@ -21,6 +21,8 @@ jobs:
                 - run: cd ; mkdir BAM; ln -s ~/data_test/BAM/BAM_multiple/NA06984.bam* BAM/.; ln -s ~/data_test/BAM/BAM_multiple/NA12890.bam* BAM/.
                 - run: cd ; nextflow run ~/project/ --help
                 - run: cd ; nextflow run ~/project/ -with-docker iarcbioinfo/ngscheckmate-nf --input_folder BAM/ --output_folder NCM-out --ref ~/data_test/REF/17.fasta --bed ~/data_test/BED/SNP_hg19_4NCM.bed --cpu 2 --mem 4 -with-dag dag.html
+                - run: cd ; nextflow run ~/project/ -with-docker iarcbioinfo/ngscheckmate-nf --input_folder BAM/ --output_folder NCM-out --ref ~/data_test/REF/17.fasta --bed ~/data_test/BED/SNP_hg19_4NCM.bed --cpu 2 --mem 4 -with-dag dag.png -resume
+                - run: cd ; echo -e "ID\tsuffix\tbam\nind1\t_N\t~/data_test/BAM/BAM_multiple/NA06984.bam\nind2\t_T\t~/data_test/BAM/BAM_multiple/NA12890.bam" > input.txt ; nextflow run ~/project/ -with-docker iarcbioinfo/ngscheckmate-nf --input_file input.txt --output_folder NCM-out-input_folder --ref ~/data_test/REF/17.fasta --bed ~/data_test/BED/SNP_hg19_4NCM.bed --cpu 2 --mem 4
                 - run: cd ; cp ~/dag.* ~/project/.
                 - add_ssh_keys:
                                 fingerprints:

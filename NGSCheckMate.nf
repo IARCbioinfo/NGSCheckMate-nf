@@ -134,10 +134,10 @@ process BCFTOOLS_calling{
     samtools faidx !{genome}
     bcftools mpileup --threads !{cpus_mpileup} --max-depth 5000 -Ou -I -R !{bed} -f !{genome} !{bam} | bcftools call --threads !{cpus_call} -c -o !{file_tag}_allSM.vcf
     for sample in `bcftools query -l !{file_tag}_allSM.vcf`; do
-        bcftools view -Ou -s $sample !{file_tag}_allSM.vcf | bcftools sort -Ou | bcftools norm -d none -O v -o $sample!{suffix}.vcf
-        bcftools view -Oz -o $sample!{suffix}.vcf.gz $sample!{suffix}.vcf
-        tabix -p vcf $sample!{suffix}.vcf.gz
-        echo "$sample!{suffix}.vcf\t!{ID}\t$sample!{suffix}" >> input_plots_$sample!{suffix}.tsv
+        bcftools view -Ou -s ${sample} !{file_tag}_allSM.vcf | bcftools sort -Ou | bcftools norm -d none -O v -o ${sample}!{suffix}.vcf
+        bcftools view -Oz -o ${sample}!{suffix}.vcf.gz ${sample}!{suffix}.vcf
+        tabix -p vcf ${sample}!{suffix}.vcf.gz
+        echo "${sample}!{suffix}.vcf\t!{ID}\t${sample}!{suffix}" >> input_plots_${sample}!{suffix}.tsv
     done
     rm !{file_tag}_allSM.vcf
     '''
