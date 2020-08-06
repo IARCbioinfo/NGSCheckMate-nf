@@ -12,7 +12,7 @@ Implementation of NGSCheckMate and its underlying subset calling, distibuted per
 
 ## Dependencies 
 
-1. This pipeline is based on [nextflow](https://www.nextflow.io). As we have several nextflow pipelines, we have centralized the common information in the [IARC-nf](https://github.com/IARCbioinfo/IARC-nf) repository. Please read it carefully as it contains essential information for the installation, basic usage and configuration of nextflow and our pipelines.
+1. Nextflow : for common installation procedures see the [IARC-nf](https://github.com/IARCbioinfo/IARC-nf) repository.
 2. [NGSCheckMate](https://github.com/parklab/NGSCheckMate) (follow instructions, especially setting up `$NCM_HOME` variable)
 3. [samtools](http://www.htslib.org/download/)
 4. [bcftools](http://www.htslib.org/download/)
@@ -24,8 +24,15 @@ Additionally, the graph output option requires [R](https://cran.r-project.org/);
   |-----------|---------------|
   | --input   | your input BAM file(s) (do not forget the quotes e.g. `--input "test_*.bam"`). Warning : your BAM file(s) must be indexed, and the `test_*.bai` should be in the same folder.  |
   |  --input_folder  | Folder with BAM files  |
+  | --input_file  | Input file (comma-separated) with 3 columns: ID (individual ID), suffix (suffix for sample names; e.g. RNA), and bam (path to bam file).|
 
 A nextflow.config is also included, please modify it for suitability outside our pre-configured clusters ([see Nexflow configuration](https://www.nextflow.io/docs/latest/config.html#configuration-file)).
+
+Note that the input_file format is tab-delimited text file; this file is used both to provide input bam file locations but also for the generation of the graphs.  The ID field must be unique to a subject (e.g. both tumor and normal samples from the same individual must have the same individual identifier). The bam field must be unique to a file name. For example, the following is a valid file:
+
+ID  suffix  bam
+NA06984 _RNA NA06984_T_transcriptome.bam\
+NA06984 _WGS NA06984_T_genome.bam
 
 ## Parameters
 
@@ -45,22 +52,14 @@ Note that a bed file SNP_GRCh38.bed is provided, which is a liftOver of the file
 | --mem   |   16 | Memory requested (in GB) for calling and NGSCheckmate run |
 | --cpu    | 4 | Number of threads for germline calling |
 |--bai_ext  | .bam.bai| Extenstion of bai files |
-| --NCM_labelfile | labels.tsv | tab-separated values file with 3 columns (vcf name, individual ID, sample ID) for generating xgmml graph file |
-
-Note that the NCM_labelfile is optional; when provided, an extra step is computed using a modified version of the graph/ngscheckmate2xgmml.R R script from https://github.com/parklab/NGSCheckMate to output graphs in .xgmml format, which can be read by software [Cytoscape](https://cytoscape.org/). The format of file NCM_labelfile is similar to that of the original script from https://github.com/parklab/NGSCheckMate: a tab-delimited text file with 3 columns without header--a sample name (1st column) that must match the name in the SM field of the BAM header, an individual identifier (2nd column), and optionally, a file identifier (3rd column) for each line. The individual identifier must be unique to a subject (e.g. both tumor and normal samples from the same individual must have the same individual identifier). A file identifier must be unique to a file name. For example, the following is a valid file:
-
-NA06984_T NA06984 NA06984_T_WES\
-NA06984_N NA06984 NA06984_N_WES
-
-where the bam files NA06984_T.bam and NA06984_N.bam respectively contain the following lines in their headers:\
-@RG	ID:SRR098409	LB:Catch-36593	SM:NA06984_T	PI:110	CN:BI	PL:ILLUMINA	DS:SRP004078\
-@RG	ID:SRR098409	LB:Catch-36593	SM:NA06984_N	PI:110	CN:BI	PL:ILLUMINA	DS:SRP004078
-
 
 ## Usage
   ```
-  nextflow run NGSCheckMate-nf/ -r v1.0 --ref ref.fasta --bed NGSCheckMate-nf/SNP_GRCh38.bed --input_folder BAM/ --NCM_labelfile NCM_labelfile.txt
+  nextflow run NGSCheckMate-nf/ -r v1.1 -profile singularity --ref ref.fasta --input_folder BAM/
   ```
+  
+ To run the pipeline without singularity just remove "-profile singularity". Alternatively, one can run the pipeline using a docker container (-profile docker) the conda receipe containing all required dependencies (-profile conda).
+
 
 ## Output
   | Type      | Description     |
@@ -71,8 +70,7 @@ where the bam files NA06984_T.bam and NA06984_N.bam respectively contain the fol
   | NCM_output/NCM_graph_wrongmatch.xgmml | graph with only the samples without a match (adapted from https://github.com/parklab/NGSCheckMate/blob/master/graph/ngscheckmate2xgmml.R) |
   | NCM_output/NCM_graph.xgmml | graph with all samples (adapted from https://github.com/parklab/NGSCheckMate/blob/master/graph/ngscheckmate2xgmml.R) |
 
-Note that we recommend cytoscape to visualize the .xgmml graphs.
-
+Note that we recommend [Cytoscape](https://cytoscape.org/) to visualize the .xgmml graphs.
 
 ## Usage for Cobalt cluster
 ```
@@ -83,6 +81,9 @@ nextflow run iarcbioinfo/NGSCheckMate -profile cobalt --input "/data/test_*.bam"
 
 ### Why are some files not included although the are in the intput_folder?
 be careful that if bai files are missing for some bam files, the bam files will be ignored without the workflow returning an error
+
+### What modifications have been done to the original NGSCheckMate code?
+We provide a modified version of the graph/ngscheckmate2xgmml.R R script from https://github.com/parklab/NGSCheckMate to output graphs in .xgmml format. The modifications allow to represent all samples, even those that match, and improve a small glitch in the color palette.
 
 ## Contributions
 
