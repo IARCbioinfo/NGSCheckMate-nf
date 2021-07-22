@@ -24,7 +24,9 @@ params.input_file    = null
 params.output_folder = "."
 params.ref           = null
 params.bed           = null
-params.bai_ext       = ".bam.bai"
+params.index_ext       = ".cram.crai"
+params.ext	     = ".cram"
+params.bam	     = null
 params.mem           = 16
 params.cpu           = 4
 
@@ -48,17 +50,17 @@ if (params.help)
     log.info "nextflow run iarcbioinfo/NGSCheckMate-nf [OPTIONS]"
     log.info ""
     log.info "Mandatory arguments:"
-    log.info "--input_folder           FOLDER             Folder with BAM files"
+    log.info "--input_folder           FOLDER             Folder with BAM/CRAM files"
     log.info "--ref                    FASTA FILE         Reference FASTA file"
     log.info ""
     log.info "Optional arguments:"
-    log.info "--input                  BAM FILES          List of BAM files (between quotes)"
+    log.info "--input                  BAM/CRAM FILES          List of BAM/CRAM files (between quotes)"
     log.info '--input_file             STRING             Input file (comma-separated) with 3 columns:'
     log.info '                                            ID (individual ID), suffix (suffix for sample names; e.g. RNA),'
-    log.info '                                            and bam (path to bam file).'
+    log.info '                                            and BAM/CRAM (path to BAM/CRAM file).'
     log.info "--bed                    BED FILE           Selected SNPs file (default: SNP_GRCh38.bed from the workflow's directory)"
     log.info "--output_folder          FOLDER             Output for NCM results"
-    log.info "--bai_ext                STRING             Extenstion of bai files (default: .bam.bai)"
+    log.info "--bam                    BOOLEAN            Extenstion is changed to .bam and .bam.bai"
     log.info "--mem                    INTEGER            Memory (in GB)"
     log.info "--cpu                    INTEGER            Number of threads for germline calling"
     exit 0
@@ -69,35 +71,43 @@ if (params.help)
   log.info "ref           = ${params.ref}"
   log.info "output_folder = ${params.output_folder}"
   log.info "bed           = ${params.bed}"
-  log.info "bai_ext       = ${params.bai_ext}"
+  log.info "bam     	  = ${params.bam}"
   log.info "mem           = ${params.mem}"
   log.info "cpu           = ${params.cpu}"
   log.info "help          = ${params.help}"
 }
 
+//the input is bam
+if(params.bam){
+	params.ext=".bam"
+	params.index_ext=".bam.bai"
+}
 
 //
 // Parse Input Parameters
 //
 if(params.input_folder){
 	println "folder input"
-	bam_ch = Channel.fromFilePairs("${params.input_folder}/*{.bam,$params.bai_ext}")
+	bam_ch = Channel.fromFilePairs("${params.input_folder}/*{$params.ext,$params.index_ext}")
                          .map { row -> tuple(row[0],"",row[1][0], row[1][1]) }
 }else{
     if(params.input_file){
         println "TSV file list input"
         bam_ch = Channel.fromPath("${params.input_file}")
 			            .splitCsv(header: true, sep: '\t', strip: true)
-			            .map { row -> [row.ID , row.suffix , file(row.bam), file(row.bam+'.bai') ] }
+			            .map { row -> [row.ID , row.suffix , file(row.bam), file(row.bam+params.index_ext) ] }
     }else{
 	    println "file input"
 	    if(params.input){
 		    bam_ch = Channel.fromPath(params.input)
-			                .map { input -> tuple(input.baseName, "", input, input.parent / input.baseName + '.bai') }
+			                .map { input -> tuple(input.baseName, "", input, input.parent / input.baseName + params.index_ext) }
 	    }
     }
 }
+//we add the .fai file
 ref       = file(params.ref)
+ref_fai   = file(params.ref+'.fai')
+
 if(params.bed){
     bed   = file(params.bed)
 }else{
@@ -115,7 +125,9 @@ process BCFTOOLS_calling{
     memory params.mem+'G'
 
     input:
-    file genome from ref 
+    file genome from ref
+    file genome_fai from ref_fai
+ 	
     set ID, suffix, file(bam), file(bai) from bam_ch
     file bed
 
@@ -129,9 +141,9 @@ process BCFTOOLS_calling{
     shell:
     cpus_mpileup = params.cpu.intdiv(2)
     cpus_call = params.cpu.intdiv(2)
-    file_tag = bam.name.replace(".bam","")
+    file_tag = bam.name.replace(params.ext,"")
 	'''
-    samtools faidx !{genome}
+    #samtools faidx !{genome}
     bcftools mpileup --threads !{cpus_mpileup} --max-depth 5000 -Ou -I -R !{bed} -f !{genome} !{bam} | bcftools call --threads !{cpus_call} -c -o !{file_tag}_allSM.vcf
     for sample in `bcftools query -l !{file_tag}_allSM.vcf`; do
         bcftools view -Ou -s ${sample} !{file_tag}_allSM.vcf | bcftools sort -Ou | bcftools norm -d none -O v -o ${sample}!{suffix}.vcf
