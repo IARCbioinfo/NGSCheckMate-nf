@@ -92,3 +92,4 @@ We provide a modified version of the graph/ngscheckmate2xgmml.R R script from ht
   |-----------|---------------|-----------------| 
   | Nicolas Alcala*    | AlcalaN@iarc.fr    | Developer to contact for support |
   | Maxime Vallée |  | Developer |
+  | Catherine Voegele |  | Developer |  
